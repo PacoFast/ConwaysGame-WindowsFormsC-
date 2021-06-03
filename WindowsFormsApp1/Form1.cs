@@ -12,19 +12,28 @@ namespace WindowsFormsApp1
 {
     public partial class Form1 : Form
     {
+        static bool stop = true; 
         static int SIZE = 100;
-        static int CELL_SIZE = 5;
+        static int CELL_SIZE = 1;
         static bool[,] grid;
-        static int counter = 0; 
+        static int counter = 0;
+        static int maximum;
+        static Vecino[] vecinos =
+        {
+                new Vecino(-1, -1), new Vecino(-1, 0), new Vecino(-1, 1),
+                new Vecino(0, -1), new Vecino(0, 0), new Vecino(0, 1),
+                new Vecino(1, -1), new Vecino(1, 0), new Vecino(1, 1)
+        };
         public Form1()
         {
             InitializeComponent();
             grid = new bool[SIZE, SIZE];
+            label1.Text = "Generaciones";
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-
+            counter = 0;
             for (int i = 0; i < SIZE; i++)
                 for (int j = 0; j < SIZE; j++)
                 {
@@ -39,16 +48,36 @@ namespace WindowsFormsApp1
                     grid[i,j] = (n == 0);
                 }
 
-            DrawGrid();
-            timer1.Enabled = true;
 
+            if(textBox1.TextLength > 0)
+            {
+                maximum = Int32.Parse(textBox1.Text); 
+
+                if(maximum == 0)
+                {
+                    MessageBox.Show($"no debe ser 0"); 
+                    return;
+                }
+            }
+            else
+            {
+                return;
+            }
+            DrawGrid();
+
+            timer1.Enabled = true;
+            stop = false;
+
+            
+
+            
         }
 
       
 
         void DrawGrid()
         {
-            Bitmap bitmap = new Bitmap(pb.Width, pb.Height);
+            Bitmap bitmap = new Bitmap(100, 100);
             for(int x = 0; x < SIZE; x++)
             {
                 for(int y = 0; y<SIZE; y++)
@@ -62,6 +91,7 @@ namespace WindowsFormsApp1
             pb.Image = bitmap;
         }
 
+
         void DrawPixel(Bitmap bmp, int x, int y, Color color)
         {
             for(int xDir = 0; xDir < CELL_SIZE; xDir++)
@@ -69,6 +99,7 @@ namespace WindowsFormsApp1
                 {
                     bmp.SetPixel(xDir + (x * CELL_SIZE), yDir + (y * CELL_SIZE), color);
                 }
+
         }
         static bool IsValid(int x, int y) => ((x < 0 || y < 0) || (x >= SIZE || y >= SIZE)) ? false : true;
 
@@ -81,11 +112,15 @@ namespace WindowsFormsApp1
 
         void StartGame()
         {
-            counter++;
-            label1.Text = counter + ""; 
             int cellsAlive;
             bool[,] nextGen = new bool[SIZE, SIZE];
-            DrawGrid();    
+            DrawGrid();
+            counter++; 
+            if(counter >= maximum)
+            {
+                Pause(); 
+            }
+            label1.Text = $"Generacion: {counter}"; 
             for (int i = 0; i < grid.GetLength(0); i++)
             {
                 for (int j = 0; j < grid.GetLength(1); j++)
@@ -116,22 +151,13 @@ namespace WindowsFormsApp1
         }
         static int CalculateNeigbors(int row, int cell)
         {
-            Vecino[,] vecinos =
-            {
-                {new Vecino(-1, -1), new Vecino(-1, 0), new Vecino(-1, 1)},
-                {new Vecino(0, -1), new Vecino(0, 0), new Vecino(0, 1)},
-                {new Vecino(1, -1), new Vecino(1, 0), new Vecino(1, 1)}
-            };
-
             int x = 0, y = 0;
             int cellAlive = 0;
-            for (int i = 0; i < vecinos.GetLength(0); i++)
-            {
                 for (int j = 0; j < vecinos.GetLength(0); j++)
                 {
                     //sacando los vecinos de la casilla actual
-                    x = row + vecinos[i, j].X;
-                    y = cell + vecinos[i, j].Y;
+                    x = row + vecinos[j].X;
+                    y = cell + vecinos[j].Y;
                     if (IsValid(x, y))
                     {
                         //si esta viva la casilla contamos y tambien tiene que ser dif a la casilla actual
@@ -141,7 +167,6 @@ namespace WindowsFormsApp1
                         }
                     }
                 }
-            }
             return cellAlive;
         }
 
@@ -162,16 +187,19 @@ namespace WindowsFormsApp1
         private void button2_Click(object sender, EventArgs e)
         {
             EndGame();
-            timer1.Enabled = false;
         }
 
         void EndGame()
         {
+            timer1.Enabled = false;
+            counter = 0;
+            label1.Text = "Stop";
             for (int i = 0; i < SIZE; i++)
                 for (int j = 0; j < SIZE; j++)
                 {
                     grid[i, j] = false;
                 }
+            stop = true; 
             DrawGrid();
         }
         
@@ -180,14 +208,33 @@ namespace WindowsFormsApp1
             timer1.Enabled = !timer1.Enabled; 
         }
 
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            StartGame();
-        }
+       
 
         private void button3_Click(object sender, EventArgs e)
         {
-            Pause();
+            if(!stop)
+                Pause();
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+             StartGame();
+           
+        }
+
+        private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+                if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar) &&
+                    (e.KeyChar != '.'))
+                {
+                    e.Handled = true;
+                }
+
+                // only allow one decimal point
+                if ((e.KeyChar == '.') && ((sender as TextBox).Text.IndexOf('.') > -1))
+                {
+                    e.Handled = true;
+                }
         }
     }
 }
